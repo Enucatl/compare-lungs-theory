@@ -20,5 +20,5 @@ sf[, density := thickness.map[, density]]
 print(sf)
 mu = sf[,density %*% mu.d]
 print(mu)
+print("expected dark field value:")
 print(exp(-mu * 0.005))
-
