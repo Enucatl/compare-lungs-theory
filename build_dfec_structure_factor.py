@@ -2,6 +2,7 @@ import click
 import csv
 import numpy as np
 from scipy import constants
+from tqdm import tqdm
 
 import logging
 import logging.config
@@ -16,10 +17,8 @@ log = logging.getLogger()
 @click.command()
 @click.option("--grating_pitch", type=float, default=5.4e-6,
               help="pitch of G2 [m]")
-@click.option("--intergrating_distance", type=float, default=20e-2,
+@click.option("--intergrating_distance", type=float, default=26.4e-2,
               help="pitch of G2 [m]")
-@click.option("--volume_fraction", type=float, default=0.5,
-              help="fraction of the total volume occupied by the spheres")
 @click.option("--sphere_material", default="CH12",
               help="chemical composition of the spheres")
 @click.option("--sphere_density", type=float, default=1.05,
@@ -28,7 +27,7 @@ log = logging.getLogger()
               help="fraction of the total volume occupied by the spheres")
 @click.option("--output", type=click.File("w"), default="-",
               help="output file for the csv data")
-@click.option("--sampling", type=int, default=1024,
+@click.option("--sampling", type=int, default=512,
               help="""
               number of cells for the sampling of real and fourier space""")
 @click.option("--verbose", is_flag=True, default=False)
@@ -50,12 +49,12 @@ def main(
         "data/thickness-map-microct.csv",
         delimiter=",",
         skip_header=True)[:, 0]
-    energies = np.arange(10, 101)
+    energies = np.arange(20, 101)
     output_csv = csv.writer(output)
     output_csv.writerow(
         ["energy", "diameter", "dfec_lynch"]
     )
-    for energy in energies:
+    for energy in tqdm(energies):
         delta_sphere, beta_sphere, _ = xdb.xray_delta_beta(
             sphere_material,
             sphere_density,
