@@ -2,7 +2,8 @@ import click
 import csv
 import numpy as np
 from scipy import constants
-from tqdm import tqdm
+import dask
+import dask.multiprocessing
 
 import logging
 import logging.config
@@ -12,6 +13,48 @@ import structure_factors.saxs as saxs
 from nist_lookup import xraydb_plugin as xdb
 
 log = logging.getLogger()
+
+
+def process(energy,
+            diameters,
+            grating_pitch,
+            intergrating_distance,
+            volume_fraction,
+            sphere_material,
+            sphere_density,
+            sampling,
+           ):
+    delta_sphere, beta_sphere, _ = xdb.xray_delta_beta(
+        sphere_material,
+        sphere_density,
+        energy * 1e3)
+    delta_chi_squared = delta_sphere ** 2 + beta_sphere ** 2
+    wavelength = (
+        constants.physical_constants["Planck constant in eV s"][0] *
+        constants.c / (energy * 1e3)
+    )
+    autocorrelation_length = (
+        wavelength * intergrating_distance / grating_pitch
+    )
+    real_space_sampling = np.linspace(
+        -4 * autocorrelation_length,
+        4 * autocorrelation_length,
+        sampling,
+        endpoint=False,
+    )
+    result = []
+    for diameter in diameters:
+        dfec_lynch = saxs.dark_field_extinction_coefficient(
+            wavelength,
+            grating_pitch,
+            intergrating_distance,
+            diameter * 1e-6,
+            volume_fraction,
+            delta_chi_squared,
+            real_space_sampling
+        )
+        result.append((energy, diameter, dfec_lynch))
+    return result
 
 
 @click.command()
@@ -54,39 +97,16 @@ def main(
     output_csv.writerow(
         ["energy", "diameter", "dfec_lynch"]
     )
-    for energy in tqdm(energies):
-        delta_sphere, beta_sphere, _ = xdb.xray_delta_beta(
-            sphere_material,
-            sphere_density,
-            energy * 1e3)
-        delta_chi_squared = delta_sphere ** 2 + beta_sphere ** 2
-        wavelength = (
-            constants.physical_constants["Planck constant in eV s"][0] *
-            constants.c / (energy * 1e3)
-        )
-        autocorrelation_length = (
-            wavelength * intergrating_distance / grating_pitch
-        )
-        real_space_sampling = np.linspace(
-            -4 * autocorrelation_length,
-            4 * autocorrelation_length,
-            sampling,
-            endpoint=False,
-        )
-        for diameter in diameters:
-            dfec_lynch = saxs.dark_field_extinction_coefficient(
-                wavelength,
-                grating_pitch,
-                intergrating_distance,
-                diameter * 1e-6,
-                volume_fraction,
-                delta_chi_squared,
-                real_space_sampling
-            )
+    values = [dask.delayed(process)(energy, diameters, grating_pitch,
+                                    intergrating_distance, volume_fraction,
+                                   sphere_material, sphere_density, sampling)
+              for energy in energies]
+    results = dask.compute(*values, get=dask.multiprocessing.get)
+    for result in results:
+        for energy, diameter, dfec_lynch in result:
             output_csv.writerow(
                 [energy, diameter, dfec_lynch]
             )
-
 
 if __name__ == "__main__":
     main()
