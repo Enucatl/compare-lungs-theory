@@ -3,53 +3,81 @@
 library(data.table)
 library(argparse)
 library(ggplot2)
+library(ks)
 
 commandline_parser = ArgumentParser(
         description="calculate the expected dark field signal")
-commandline_parser$add_argument('-a', '--aggregated',
-            type='character', nargs='?', default='data/aggregated.csv',
+commandline_parser$add_argument('-p', '--pixels',
+            type='character', nargs='?', default='data/pixels.rds',
             help='file with the aggregated')
-commandline_parser$add_argument('-f', '--file',
-            type='character', nargs='?', default='data/goran-renamed.rds',
-            help='file with the thickness map')
 commandline_parser$add_argument('-s', '--spectrum',
             type='character', nargs='?', default='spectrum.csv',
             help='file with the spectral weights')
-commandline_parser$add_argument('-d', '--dfec',
-            type='character', nargs='?', default='structure_factors.csv',
-            help='table with all the dark field extintion coefficients calculated with saxs')
+commandline_parser$add_argument('-d', '--datasets',
+            type='character', nargs='?', default='datasets.csv',
+            help='table with all the dataset paths')
+commandline_parser$add_argument('-o', '--output',
+            type='character', nargs='?', default='samples.png',
+            help='output png')
 
 args = commandline_parser$parse_args()
-aggregated = fread(args$a)
-structure.factors = fread(args$d)
+pixels = readRDS(args$p)
+aggregated = dcast(
+    pixels[region == "LL", ],
+    smoke + name + region ~ .,
+    fun=list(median, sd, length),
+    value.var=c("A", "B", "R", "v")
+    )
+aggregated[, sample := paste(name, region, smoke, sep="_")]
 spectrum = fread(args$s)
-thickness.map = data.table(readRDS(args$f)[-1, ])
-print(thickness.map)
+dt = fread(args$d)
+pixel_size = 0.6e-6
+
+#print(dt)
+#print(aggregated)
+#thickness.map = data.table(readRDS(args$f)[-1, ])
+#print(thickness.map)
 norm = 1 / spectrum[, sum(total_weight)]
 spectrum = spectrum[, total_weight := norm * total_weight]
 
-mu.total = function(dfec) {
-    logB = (spectrum[, total_weight] %*% dfec)
-    return(logB)
+calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_filename, A_median) {
+    kde = readRDS(kde_filename)
+    dfec = fread(dfec_filename)
+    thickness_density = fread(thickness_density_filename)
+    sum_over_spectrum = function(dfec_lynch) {
+        return(spectrum[, total_weight] %*% dfec_lynch)
+    }
+
+    sf = dfec[, sum_over_spectrum(dfec_lynch), by=diameter]
+    setnames(sf, "V1", "mu.d")
+    sf[, density := predict(kde, x=diameter)]
+    t = pixel_size * thickness_density[, thickness]
+    r = -sf[, density %*% mu.d] * t / log(A_median)
+    return(r)
 }
 
-sf = structure.factors[, mu.total(dfec_lynch), by=diameter]
-setnames(sf, "V1", "mu.d")
-sf[, KO373 := thickness.map[, KO373]]
-sf[, WT256 := thickness.map[, WT256]]
-sf[, WT353 := thickness.map[, WT353]]
-print(sf)
-mu.d.plot = ggplot(sf) +
-    geom_line(aes(x=diameter, y=mu.d)) +
-    ylab(expression(mu[dfec]))
-print(mu.d.plot)
-width = 5
-height = 5
-ggsave("dfec_vs_diameter.png", mu.d.plot, width=width, height=height, dpi=300)
+dt = merge(dt, aggregated, by="name")
+print(dt)
+result = dt[, calculate.expected.r(kde, dfec, thickness_density, A_median), by=name]
+setnames(result, "V1", "R_theory")
+dt = merge(dt, result, by="name")
+print(dt[, .SD, .SDcols=c("name", "R_sd", "R_median", "R_theory")])
+
+plot = ggplot(dt, aes(x=name)) +
+    geom_point(aes(y=R_median, color="black"), size=3) +
+    geom_errorbar(aes(ymin=R_median - R_sd, ymax=R_median + R_sd), width=0.1) +
+    geom_point(aes(y=R_theory, color="red"), size=3) +
+    scale_color_manual(name="", values=c("black", "red"), labels=c("measured", "theory")) +
+    theme(axis.text.x=element_text(angle=75, hjust=1)) +
+    xlab("sample") +
+    ylab("log(B) / log(A)")
+
+dev_width = 10
+factor = 0.618
+dev_height = dev_width * factor
+dev.new(width=dev_width, height=dev_height)
+print(plot)
+
+ggsave(args$o, plot, width=dev_width, height=dev_height)
+
 invisible(readLines(con="stdin", 1))
-r1 = -sf[, KO373 %*% mu.d] * 0.005 / log(aggregated[name == "KO373", A_median])
-r2 = -sf[, WT256 %*% mu.d] * 0.005 / log(aggregated[name == "WT256", A_median])
-r3 = -sf[, WT353 %*% mu.d] * 0.005 / log(aggregated[name == "WT353", A_median])
-print(c(r1, aggregated[name == "KO373", R_median]))
-print(c(r2, aggregated[name == "WT256", R_median]))
-print(c(r3, aggregated[name == "WT353", R_median]))

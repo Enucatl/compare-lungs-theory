@@ -89,7 +89,7 @@ def main(
         config_dictionary['loggers']['']['level'] = 'DEBUG'
     logging.config.dictConfig(config_dictionary)
     diameters = np.genfromtxt(
-        "data/thickness-map-microct.csv",
+        "/home/matteo/code/compare-lungs-theory/data/thickness-map-microct.csv",
         delimiter=",",
         skip_header=True)[:, 0]
     energies = np.arange(20, 101)
