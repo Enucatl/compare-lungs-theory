@@ -31,7 +31,7 @@ aggregated = dcast(
 aggregated[, sample := paste(name, region, smoke, sep="_")]
 spectrum = fread(args$s)
 dt = fread(args$d)
-pixel_size = 0.6e-6
+pixel_size = 0.65e-6
 
 #print(dt)
 #print(aggregated)
@@ -42,7 +42,7 @@ spectrum = spectrum[, total_weight := norm * total_weight]
 
 calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_filename, A_median) {
     kde = readRDS(kde_filename)
-    dfec = fread(dfec_filename)
+    dfec = fread(dfec_filename)[diameter < 95]
     thickness_density = fread(thickness_density_filename)
     sum_over_spectrum = function(dfec_lynch) {
         return(spectrum[, total_weight] %*% dfec_lynch)
@@ -50,9 +50,11 @@ calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_f
 
     sf = dfec[, sum_over_spectrum(dfec_lynch), by=diameter]
     setnames(sf, "V1", "mu.d")
+    diameter_sampling_step = (sf[2, diameter] - sf[1, diameter])
     sf[, density := predict(kde, x=diameter)]
     t = pixel_size * thickness_density[, thickness]
-    r = -sf[, density %*% mu.d] * t / log(A_median)
+    print(sf[, sum(density) * diameter_sampling_step])
+    r = -sf[, (density %*% mu.d) * diameter_sampling_step] * t / log(A_median)
     return(r)
 }
 

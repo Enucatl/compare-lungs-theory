@@ -64,7 +64,7 @@ def process(energy,
               help="pitch of G2 [m]")
 @click.option("--sphere_material", default="CH12",
               help="chemical composition of the spheres")
-@click.option("--sphere_density", type=float, default=1.05,
+@click.option("--sphere_density", type=float, default=1.6,
               help="density of the material of the spheres [g/cm³]")
 @click.option("--volume_fraction", type=float, default=0.5,
               help="fraction of the total volume occupied by the spheres")
@@ -88,20 +88,17 @@ def main(
         config_dictionary['handlers']['default']['level'] = 'DEBUG'
         config_dictionary['loggers']['']['level'] = 'DEBUG'
     logging.config.dictConfig(config_dictionary)
-    diameters = np.genfromtxt(
-        "/home/matteo/code/compare-lungs-theory/data/thickness-map-microct.csv",
-        delimiter=",",
-        skip_header=True)[:, 0]
+    diameters = np.arange(0.25, 96, 0.25)
     energies = np.arange(20, 101)
-    output_csv = csv.writer(output)
-    output_csv.writerow(
-        ["energy", "diameter", "dfec_lynch"]
-    )
     values = [dask.delayed(process)(energy, diameters, grating_pitch,
                                     intergrating_distance, volume_fraction,
                                    sphere_material, sphere_density, sampling)
               for energy in energies]
     results = dask.compute(*values, get=dask.multiprocessing.get)
+    output_csv = csv.writer(output)
+    output_csv.writerow(
+        ["energy", "diameter", "dfec_lynch"]
+    )
     for result in results:
         for energy, diameter, dfec_lynch in result:
             output_csv.writerow(
