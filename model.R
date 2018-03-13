@@ -40,9 +40,15 @@ pixel_size = 0.65e-6
 norm = 1 / spectrum[, sum(total_weight)]
 spectrum = spectrum[, total_weight := norm * total_weight]
 
+<<<<<<< HEAD
 calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_filename, A_median, B_median, B_sd) {
     kde = readRDS(kde_filename)
     dfec = fread(dfec_filename)[diameter < 80]
+=======
+calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_filename, A_median) {
+    kde = readRDS(kde_filename)
+    dfec = fread(dfec_filename)[diameter < 95]
+>>>>>>> d7d605491634138892ba4a4cc828271806117668
     thickness_density = fread(thickness_density_filename)
     sum_over_spectrum = function(dfec_lynch) {
         return(spectrum[, total_weight] %*% dfec_lynch)
@@ -53,6 +59,7 @@ calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_f
     diameter_sampling_step = (sf[2, diameter] - sf[1, diameter])
     sf[, density := predict(kde, x=diameter)]
     t = pixel_size * thickness_density[, thickness]
+<<<<<<< HEAD
     #print(sf[, diameter])
     #print(sf[, median(density)])
     #print(sf[, mu.d])
@@ -64,10 +71,16 @@ calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_f
     diameter_estimate_error = diameter_max_estimate - diameter_reverse_estimate
     r = -sf[, (density %*% mu.d) * diameter_sampling_step] * t / log(A_median)
     return(data.table(R_theory=r, microct_diameter=microct_diameter, diameter_reverse_estimate=diameter_reverse_estimate, diameter_estimate_error=diameter_estimate_error))
+=======
+    print(sf[, sum(density) * diameter_sampling_step])
+    r = -sf[, (density %*% mu.d) * diameter_sampling_step] * t / log(A_median)
+    return(r)
+>>>>>>> d7d605491634138892ba4a4cc828271806117668
 }
 
 dt = merge(dt, aggregated, by="name")
 print(dt)
+<<<<<<< HEAD
 result = dt[, calculate.expected.r(kde, dfec, thickness_density, A_median, B_median, B_sd), by=name]
 setnames(result, "R_theory.V1", "R_theory")
 #setnames(result, "microct_diameter.V1", "microct_diameter")
@@ -82,6 +95,10 @@ inverse_plot = ggplot(result, aes(x=name)) +
     xlab("sample") +
     ylab("diameter estimate")
 
+=======
+result = dt[, calculate.expected.r(kde, dfec, thickness_density, A_median), by=name]
+setnames(result, "V1", "R_theory")
+>>>>>>> d7d605491634138892ba4a4cc828271806117668
 dt = merge(dt, result, by="name")
 print(dt[, .SD, .SDcols=c("name", "R_sd", "R_median", "R_theory")])
 
@@ -99,8 +116,11 @@ factor = 0.618
 dev_height = dev_width * factor
 dev.new(width=dev_width, height=dev_height)
 print(plot)
+<<<<<<< HEAD
 dev.new(width=dev_width, height=dev_height)
 print(inverse_plot)
+=======
+>>>>>>> d7d605491634138892ba4a4cc828271806117668
 
 ggsave(args$o, plot, width=dev_width, height=dev_height)
 
