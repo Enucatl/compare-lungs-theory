@@ -94,6 +94,11 @@ plot = ggplot(dt, aes(x=name)) +
     xlab("sample") +
     ylab("log(B) / log(A)")
 
+chisq = dt[, sum((R_median - R_theory)^2 / R_sd^2)]
+print("CHISQ")
+print(chisq)
+print(pchisq(chisq, df=(nrow(dt) - 1), lower.tail=FALSE))
+
 dev_width = 10
 factor = 0.618
 dev_height = dev_width * factor
