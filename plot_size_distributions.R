@@ -31,10 +31,10 @@ thickness.plot = ggplot(thickness.map, aes(x=diameter, y=density)) +
         x="structure size (μm)",
         y="probability density function"
         ) +
-    scale_x_continuous(expand=c(0, 0), limits=c(0, 60)) +
+    scale_x_continuous(expand=c(0, 0), limits=c(0, 70)) +
     scale_y_continuous(expand=c(0, 0), limits=c(0, 0.04))
 
-width = 6
+width = 10
 factor = 0.618
 height = width * factor
 ggsave("size_pdf.png", thickness.plot, width=width, height=height, dpi=300)
