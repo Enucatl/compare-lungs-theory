@@ -3,7 +3,6 @@
 library(data.table)
 library(argparse)
 library(ggplot2)
-<<<<<<< HEAD
 library(ks)
 
 commandline_parser = ArgumentParser(
@@ -27,39 +26,12 @@ thickness.map = dt[, kde_prediction(kde), by=name]
 
 thickness.plot = ggplot(thickness.map, aes(x=diameter, y=density)) +
     geom_line(aes(color=name)) + 
-=======
-
-commandline_parser = ArgumentParser(
-        description="plot thickness map")
-commandline_parser$add_argument('-f', '--file',
-            type='character', nargs='?', default='data/goran-3-samples.rds',
-            help='file with the thickness map')
-args = commandline_parser$parse_args()
-
-col.a = paste("y", 1:3, sep="")
-col.b = paste("y", 1:3, "_std", sep="")
-print(col.a)
-print(col.b)
-thickness.map = melt(
-    data.table(readRDS(args$f)),
-    measure=list(col.a, col.b),
-    value.name=c("y", "y_std"))
-
-print(thickness.map)
-
-thickness.plot = ggplot(thickness.map, aes(x=x_axis, y=y)) +
-    geom_line(aes(color=variable)) + 
->>>>>>> d7d605491634138892ba4a4cc828271806117668
     labs(
         color="sample",
         x="structure size (μm)",
         y="probability density function"
         ) +
-<<<<<<< HEAD
-    scale_x_continuous(expand=c(0, 0), limits=c(0, 150)) +
-=======
     scale_x_continuous(expand=c(0, 0), limits=c(0, 60)) +
->>>>>>> d7d605491634138892ba4a4cc828271806117668
     scale_y_continuous(expand=c(0, 0), limits=c(0, 0.04))
 
 width = 6

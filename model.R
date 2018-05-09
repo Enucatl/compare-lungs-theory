@@ -59,8 +59,8 @@ calculate.expected.r = function(kde_filename, dfec_filename, thickness_density_f
     #print(log(B_median) / t)
     diameter_reverse_estimate = sf[which.min(abs(sf[, mu.d] + log(B_median) / t)), diameter]
     diameter_max_estimate = sf[which.min(abs(sf[, mu.d] + log(B_median + B_sd) / t)), diameter]
-    #microct_diameter = sf[, (diameter %*% density) * diameter_sampling_step] / 2
-    microct_diameter = sf[which.max(density), diameter] - 5
+    microct_diameter = sf[, (diameter %*% density) * diameter_sampling_step] / 2
+    #microct_diameter = sf[which.max(density), diameter] - 5
     diameter_estimate_error = diameter_max_estimate - diameter_reverse_estimate
     r = -sf[, (density %*% mu.d) * diameter_sampling_step] * t / log(A_median)
     return(data.table(R_theory=r, microct_diameter=microct_diameter, diameter_reverse_estimate=diameter_reverse_estimate, diameter_estimate_error=diameter_estimate_error))
