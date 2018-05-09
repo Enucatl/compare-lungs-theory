@@ -82,8 +82,6 @@ inverse_plot = ggplot(result, aes(x=name)) +
     xlab("sample") +
     ylab("diameter estimate")
 
-result = dt[, calculate.expected.r(kde, dfec, thickness_density, A_median), by=name]
-setnames(result, "V1", "R_theory")
 dt = merge(dt, result, by="name")
 print(dt[, .SD, .SDcols=c("name", "R_sd", "R_median", "R_theory")])
 
